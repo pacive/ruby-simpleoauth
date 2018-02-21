@@ -11,6 +11,6 @@ Gem::Specification.new do |s|
   s.author    = 'Anders Alfredsson'
   s.email     = 'andersb86@gmail.com'
   s.files     = ['lib/simpleoauth.rb', 'lib/simpleoauth/client.rb', 'lib/simpleoauth/token.rb']
-  s.homepage  = 'https://github.com/pacive/simpleoauth'
+  s.homepage  = 'https://github.com/pacive/ruby-simpleoauth'
   s.license   = 'GPL-3.0'
 end
