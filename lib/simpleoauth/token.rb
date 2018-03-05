@@ -31,7 +31,7 @@ module SimpleOAuth
     def refresh!(access_token, expires_in, refresh_token, timestamp = Time.now)
       @access_token = access_token
       @timestamp = timestamp
-      @expires_in = expires_in
+      @expires_in = expires_in - 5
       @refresh_token = refresh_token
     end
 

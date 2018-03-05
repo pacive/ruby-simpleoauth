@@ -54,23 +54,18 @@ module SimpleOAuth
     # NOTE: This gem cannot retrieve an authorization code, since this require
     # manual interaction. This has to be done by other means.
     def authorize(authorization_code, callback_url, scope)
-      body = { grant_type: 'authorization_code',
-               code: authorization_code,
-               redirect_uri: callback_url,
-               scope: scope }
+      req_body = { grant_type: 'authorization_code',
+                   code: authorization_code,
+                   redirect_uri: callback_url,
+                   scope: scope }
 
-      response = request_token(body)
-      response_body = JSON.parse(response.body)
+      response = JSON.parse(request_token(req_body).body)
 
-      @token = Token.new(response_body['access_token'],
-                         response_body['expires_in'],
-                         response_body['refresh_token'],
-                         Time.parse(response['Date']))
+      @token = Token.new(response['access_token'], response['expires_in'], response['refresh_token'])
 
       save_token
     rescue StandardError => e
-      puts 'Unable to authorize'
-      puts e.message
+      puts "Unable to authorize\n#{e.message}"
     end
 
     # Sent a Http GET request to path, using token as authorization
@@ -96,7 +91,7 @@ module SimpleOAuth
     # Load token from file. If no argument is given, use +@token_dir+ instead.
     # Also sets +@token_dir+ to the provided argument.
     def load_token(dir = nil)
-      @token_dir = dir unless dir.nil?
+      @token_dir = dir if dir
       data = File.read(@token_dir + @token_file)
       token = @encrypt ? decrypt_token(data) : JSON.parse(data)
       @token = Token.new(token['access_token'],
@@ -105,8 +100,7 @@ module SimpleOAuth
                          Time.at(token['timestamp']),
                          token['token_type'])
     rescue StandardError => e
-      puts 'Error loading token'
-      puts e.message
+      puts "Error loading token\n#{e.message}"
     end
 
     # Save Token to file. If no argument is given, use +@token_dir+ instead.
@@ -140,28 +134,23 @@ module SimpleOAuth
 
     # Request a new token using the refresh token
     def refresh_token
-      body = { grant_type: 'refresh_token', refresh_token: @token.refresh_token }
+      req_body = { grant_type: 'refresh_token', refresh_token: @token.refresh_token }
 
-      response = request_token(body)
-      response_body = JSON.parse(response.body)
+      response = JSON.parse(request_token(req_body).body)
 
-      @token.refresh!(response_body['access_token'],
-                      response_body['expires_in'],
-                      response_body['refresh_token'],
-                      Time.parse(response['Date']))
+      @token.refresh!(response['access_token'], response['expires_in'], response['refresh_token'])
 
       save_token
     rescue StandardError => e
-      puts 'Unable to refresh token'
-      puts e.message
+      puts "Unable to refresh token\n#{e.message}"
     end
 
     # Make a request and return the response
     def make_request(request_obj, query = nil, body = nil)
       refresh_token if @token.expired?
-      request_obj.path.concat('?', URI.encode_www_form(query)) unless query.nil?
+      request_obj.path.concat('?', URI.encode_www_form(query)) if query
 
-      request_obj.body = body unless body.nil?
+      request_obj.body = body if body
       request_obj['Authorization'] = "Bearer #{@token.access_token}"
       Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(request_obj) }
     end
