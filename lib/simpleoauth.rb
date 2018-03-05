@@ -17,12 +17,12 @@ require 'simpleoauth/token'
 # ===Example:
 #
 #   require 'simpleoauth'
-#   
+#
 #   oauth = SimpleOAuth::Client.new('api.example.com', '/oauth/token', 'oauth_client_id', 'oauth_client_secret')
 #   oauth.load_token('/path/to/file/')
 #   puts oauth.get('/resource').body
 #   puts oauth.post('/resource', { data: 'some_data' }.to_json, 'content-type' => 'application/json')
 module SimpleOAuth
   # Version of the gem
-  VERSION = '0.3.0'
+  VERSION = '0.3.1'
 end

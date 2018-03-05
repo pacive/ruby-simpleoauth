@@ -25,7 +25,7 @@ module SimpleOAuth
 
     # The path to the resource provider's token endpoint
     attr_reader :token_endpoint
-    
+
     ##
     # Create a new OAuth client
     #
@@ -34,7 +34,7 @@ module SimpleOAuth
     # [client_id/client_secret]  the consumers client id and secret
     # [token_endpoint_auth]  \[optional\] specifies how the consumer should provide authentication
     #                        to the resource provider when requesting a token. Default is to pass the
-    #                        client id and secret in the message body, 
+    #                        client id and secret in the message body,
     #                        but can be set to +:basic+ to use http basic auth instead.
 
     def initialize(host, token_endpoint, client_id, client_secret, token_endpoint_auth = nil)
@@ -93,7 +93,8 @@ module SimpleOAuth
       make_request(Net::HTTP::Delete.new(path, headers))
     end
 
-    # Load token from file. Also sets +token_dir+ to the provided argument.
+    # Load token from file. If no argument is given, use +@token_dir+ instead.
+    # Also sets +@token_dir+ to the provided argument.
     def load_token(dir = nil)
       @token_dir = dir unless dir.nil?
       data = File.read(@token_dir + @token_file)
@@ -103,13 +104,13 @@ module SimpleOAuth
                          token['refresh_token'],
                          Time.at(token['timestamp']),
                          token['token_type'])
-
     rescue StandardError => e
       puts 'Error loading token'
       puts e.message
     end
 
-    # Save Token to file. Also sets +token_dir+ to the provided argument.
+    # Save Token to file. If no argument is given, use +@token_dir+ instead.
+    # Also sets +@token_dir+ to the provided argument.
     def save_token(dir = nil)
       @token_dir = dir unless dir.nil?
       data = @encrypt ? encrypt_token : @token.to_json

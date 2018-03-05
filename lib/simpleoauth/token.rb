@@ -6,10 +6,10 @@ module SimpleOAuth
   class Token
     # The access token used for authenticating with the resource provider
     attr_reader :access_token
-    
+
     # The refresh token used to get a new token if the token has expired
     attr_reader :refresh_token
-    
+
     # The type of token. Currently only supports Bearer-type tokens
     attr_reader :token_type
 
@@ -21,7 +21,7 @@ module SimpleOAuth
                    token_type = 'bearer')
 
       @access_token = access_token
-      @expires_in = expires_in
+      @expires_in = expires_in - 5
       @refresh_token = refresh_token
       @token_type = token_type
       @timestamp = timestamp

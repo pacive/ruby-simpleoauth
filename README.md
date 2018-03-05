@@ -1,4 +1,4 @@
-# ruby-simpleoauth
+# SimpleOAuth
 A simple ruby gem for handling OAuth 2 authentication
 
 SimpleOAuth is a gem that handles OAuth2 authentication that is used by many
