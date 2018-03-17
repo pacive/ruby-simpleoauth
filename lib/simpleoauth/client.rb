@@ -152,7 +152,9 @@ module SimpleOAuth
 
       request_obj.body = body if body
       request_obj['Authorization'] = "Bearer #{@token.access_token}"
-      Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(request_obj) }
+      res = Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(request_obj) }
+      raise UnauthorizedError if res.code == 401
+      res
     end
 
     # Request a new token

@@ -24,5 +24,11 @@ require 'simpleoauth/token'
 #   puts oauth.post('/resource', { data: 'some_data' }.to_json, 'content-type' => 'application/json')
 module SimpleOAuth
   # Version of the gem
-  VERSION = '0.3.1'
+  VERSION = '0.4.0'
+
+  class OAuthError < StandardError
+  end
+
+  class UnauthorizedError < OAuthError
+  end
 end
