@@ -70,22 +70,22 @@ module SimpleOAuth
 
     # Sent a Http GET request to path, using token as authorization
     def get(path, query = nil, headers = {})
-      make_request(Net::HTTP::Get.new(path, headers), query)
+      request(Net::HTTP::Get.new(path, headers), query)
     end
 
     # Send a Http POST request to path, using token as authorization
     def post(path, body, headers = {})
-      make_request(Net::HTTP::Post.new(path, headers), nil, body)
+      request(Net::HTTP::Post.new(path, headers), nil, body)
     end
 
     # Send a Http PUT request to path, using token as authorization
     def put(path, body, headers = {})
-      make_request(Net::HTTP::Put.new(path, headers), nil, body)
+      request(Net::HTTP::Put.new(path, headers), nil, body)
     end
 
     # Send a Http DELETE request to path, using token as authorization
     def delete(path, headers = {})
-      make_request(Net::HTTP::Delete.new(path, headers))
+      request(Net::HTTP::Delete.new(path, headers))
     end
 
     # Load token from file. If no argument is given, use +@token_dir+ instead.
@@ -145,14 +145,22 @@ module SimpleOAuth
       puts "Unable to refresh token\n#{e.message}"
     end
 
-    # Make a request and return the response
-    def make_request(request_obj, query = nil, body = nil)
+    # Process request
+    def request(req, query = nil, body = nil)
       refresh_token if @token.expired?
-      request_obj.path.concat('?', URI.encode_www_form(query)) if query
+      make_request(req, query, body)
+    rescue UnauthorizedError
+      refresh_token
+      make_request(req, query, body)
+    end
 
-      request_obj.body = body if body
-      request_obj['Authorization'] = "Bearer #{@token.access_token}"
-      res = Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(request_obj) }
+    # Make a request and return the response
+    def make_request(req, query, body)
+      req.path.concat('?', URI.encode_www_form(query)) if query
+      req.body = body if body
+
+      req['Authorization'] = "Bearer #{@token.access_token}"
+      res = Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(req) }
       raise UnauthorizedError if res.code == 401
       res
     end
