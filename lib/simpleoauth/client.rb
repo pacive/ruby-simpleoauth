@@ -162,6 +162,7 @@ module SimpleOAuth
       req['Authorization'] = "Bearer #{@token.access_token}"
       res = Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(req) }
       raise UnauthorizedError if res.code == 401
+
       res
     end
 
