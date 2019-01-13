@@ -142,7 +142,9 @@ module SimpleOAuth
 
       save_token
     rescue StandardError => e
-      puts "Unable to refresh token\n#{e.message}"
+      puts "Unable to refresh token\n#{e.message}\n#{e.backtrace}"
+      puts 'Reloading saved token'
+      load_token
     end
 
     # Process request
