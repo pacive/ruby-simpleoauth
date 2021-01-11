@@ -9,6 +9,7 @@ require 'openssl'
 require 'time'
 require 'simpleoauth/client'
 require 'simpleoauth/token'
+require 'simpleoauth/tokenhandler'
 
 ##
 # SimpleOAuth is a gem that handles OAuth2 authentication that is used by many
@@ -24,7 +25,7 @@ require 'simpleoauth/token'
 #   puts oauth.post('/resource', { data: 'some_data' }.to_json, 'content-type' => 'application/json')
 module SimpleOAuth
   # Version of the gem
-  VERSION = '0.5.1'
+  VERSION = '0.6.0'
 
   class OAuthError < StandardError
   end

@@ -15,38 +15,35 @@ module SimpleOAuth
 
     # Create a new token object
     def initialize(access_token,
-                   expires_in,
+                   valid_to,
                    refresh_token,
-                   timestamp = Time.now,
                    token_type = 'bearer')
 
       @access_token = access_token
-      @expires_in = expires_in - 5
+      @valid_to = valid_to
       @refresh_token = refresh_token
       @token_type = token_type
-      @timestamp = timestamp
     end
 
     # Update token with new values
-    def refresh!(access_token, expires_in, refresh_token, timestamp = Time.now)
+    def update!(access_token, expires_in, refresh_token)
       @access_token = access_token
       @timestamp = timestamp
-      @expires_in = expires_in - 5
+      @valid_to = Time.now + expires_in
       @refresh_token = refresh_token
     end
 
     # Check if the token has expired
-    def expired?
-      Time.now > @timestamp + @expires_in
+    def expired?(offset)
+      Time.now - offset > @valid_to
     end
 
     # Return a json representation of the token
-    def to_json
+    def to_json(*args)
       { access_token: @access_token,
-        timestamp: @timestamp.to_i,
-        expires_in: @expires_in,
+        valid_to: @valid_to.to_i,
         refresh_token: @refresh_token,
-        token_type: @token_type }.to_json
+        token_type: @token_type }.to_json(*args)
     end
   end
 end

@@ -13,6 +13,9 @@ module SimpleOAuth
     # The method of authentication that is used when requesting a token
     attr_accessor :token_endpoint_auth
 
+    # Time buffer to expire the token early (in seconds)
+    attr_accessor :token_expires_in_buffer
+
     # Whether to encrypt the token information before saving it to a file. Defaults to +true+
     #
     # NOTE: The data is encrypted with 128-bit AES encryption using the +client_secret+ and +client_id+
@@ -42,10 +45,8 @@ module SimpleOAuth
       @token_endpoint = token_endpoint
       @client_id = client_id
       @client_secret = client_secret
-      @token_endpoint_auth = token_endpoint_auth
-      @token_file = ".oauth_token_#{Digest::MD5.hexdigest(@host.host)}"
-      @token_dir = './'
-      @encrypt = true
+      @token = TokenHandler.new(host + token_endpoint, client_id, client_secret)
+      @token.endpoint_auth = token_endpoint_auth
     end
 
     ##
@@ -54,16 +55,7 @@ module SimpleOAuth
     # NOTE: This gem cannot retrieve an authorization code, since this require
     # manual interaction. This has to be done by other means.
     def authorize(authorization_code, callback_url, scope)
-      req_body = { grant_type: 'authorization_code',
-                   code: authorization_code,
-                   redirect_uri: callback_url,
-                   scope: scope }
-
-      response = JSON.parse(request_token(req_body).body)
-
-      @token = Token.new(response['access_token'], response['expires_in'], response['refresh_token'])
-
-      save_token
+      @token.new_token(authorization_code, callback_url, scope)
     rescue StandardError => e
       puts "Unable to authorize\n#{e.message}"
     end
@@ -83,76 +75,41 @@ module SimpleOAuth
       request(Net::HTTP::Put.new(path, headers), nil, body)
     end
 
+    # Send a Http PATCH request to path, using token as authorization
+    def patch(path, body, headers = {})
+      request(Net::HTTP::Patch.new(path, headers), nil, body)
+    end
+
     # Send a Http DELETE request to path, using token as authorization
     def delete(path, headers = {})
       request(Net::HTTP::Delete.new(path, headers))
     end
 
-    # Load token from file. If no argument is given, use +@token_dir+ instead.
-    # Also sets +@token_dir+ to the provided argument.
-    def load_token(dir = nil)
-      @token_dir = dir if dir
-      data = File.read(@token_dir + @token_file)
-      token = @encrypt ? decrypt_token(data) : JSON.parse(data)
-      @token = Token.new(token['access_token'],
-                         token['expires_in'],
-                         token['refresh_token'],
-                         Time.at(token['timestamp']),
-                         token['token_type'])
-    rescue StandardError => e
-      puts "Error loading token\n#{e.message}"
+    def method_missing(method, *args, &block)
+      meth = method.gsub(/\Atoken_/, '')
+      @token.send(meth, *args, &block)
     end
 
-    # Save Token to file. If no argument is given, use +@token_dir+ instead.
-    # Also sets +@token_dir+ to the provided argument.
-    def save_token(dir = nil)
-      @token_dir = dir unless dir.nil?
-      data = @encrypt ? encrypt_token : @token.to_json
-      File.write(@token_dir + @token_file, data)
+    def respond_to_missing?(method)
+      case method
+      when /token_dir=?/,
+           /token_file=?/,
+           /token_endpoint_auth=?/,
+           /token_expires_in_buffer=?/,
+           /encrypt=?/
+           then true
+      else super
+      end
     end
 
     private
 
-    # Decrypt an encrypted token
-    def decrypt_token(data)
-      cipher = OpenSSL::Cipher::AES.new(128, :CBC)
-      cipher.decrypt
-      cipher.key = @client_secret.byteslice(0..15)
-      cipher.iv = @client_id.byteslice(0..15)
-      json = cipher.update(data) + cipher.final
-      JSON.parse(json)
-    end
-
-    # Encrypt token
-    def encrypt_token
-      cipher = OpenSSL::Cipher::AES.new(128, :CBC)
-      cipher.encrypt
-      cipher.key = @client_secret.byteslice(0..15)
-      cipher.iv = @client_id.byteslice(0..15)
-      cipher.update(@token.to_json) + cipher.final
-    end
-
-    # Request a new token using the refresh token
-    def refresh_token
-      req_body = { grant_type: 'refresh_token', refresh_token: @token.refresh_token }
-
-      response = JSON.parse(request_token(req_body).body)
-
-      @token.refresh!(response['access_token'], response['expires_in'], response['refresh_token'])
-
-      save_token
-    rescue StandardError => e
-      puts "Unable to refresh token\n#{e.message}\n#{e.backtrace}"
-      puts 'Reloading saved token'
-      load_token
-    end
-
     # Process request
     def request(req, query = nil, body = nil)
-      refresh_token if @token.expired?
+      @token.renew if @token.expired?
       make_request(req, query, body)
     rescue UnauthorizedError
-      refresh_token
+      @token.renew
       make_request(req, query, body)
     end
 
@@ -166,22 +123,6 @@ module SimpleOAuth
       raise UnauthorizedError if res.code == 401
 
       res
-    end
-
-    # Request a new token
-    def request_token(params)
-      header = {}
-
-      if @token_endpoint_auth == :basic
-        header = { authorization: 'Basic ' + Base64.encode64("#{@client_id}:#{@client_secret}") }
-      else
-        params[:client_id] = @client_id
-        params[:client_secret] = @client_secret
-      end
-
-      request = Net::HTTP::Post.new(@token_endpoint, header)
-      request.form_data = params
-      Net::HTTP.start(@host.hostname, @host.port, use_ssl: true) { |http| http.request(request) }
     end
   end
 end
